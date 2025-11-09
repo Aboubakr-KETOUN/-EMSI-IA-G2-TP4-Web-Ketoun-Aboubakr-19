@@ -12,12 +12,15 @@ import dev.langchain4j.rag.DefaultRetrievalAugmentor;
 import dev.langchain4j.rag.RetrievalAugmentor;
 import dev.langchain4j.rag.content.retriever.ContentRetriever;
 import dev.langchain4j.rag.content.retriever.EmbeddingStoreContentRetriever;
+import dev.langchain4j.rag.query.router.LanguageModelQueryRouter;
+import dev.langchain4j.rag.query.router.QueryRouter;
 import dev.langchain4j.service.AiServices;
 import ma.emsi.ketoun.tp4_web_aboubakr_ketoun_19.Interfaces.Assistant;
 import dev.langchain4j.store.embedding.EmbeddingStore;
-import ma.emsi.ketoun.tp4_web_aboubakr_ketoun_19.QueryRouter.QueryRouterPourEviterRag;
 import ma.emsi.ketoun.tp4_web_aboubakr_ketoun_19.LoggerConfig.LoggerConfig;
 import ma.emsi.ketoun.tp4_web_aboubakr_ketoun_19.RAG.EmbeddingStoreCreator;
+import java.util.HashMap;
+import java.util.Map;
 
 public class LlmClient {
     String systemRole;
@@ -45,19 +48,37 @@ public class LlmClient {
 
         EmbeddingModel embeddingModel = new AllMiniLmL6V2EmbeddingModel();
 
-        EmbeddingStore<TextSegment> embeddingStore = EmbeddingStoreCreator.creerEmbeddingStore("/rag.pdf", embeddingModel);
+        EmbeddingStore<TextSegment> embeddingStore1 = EmbeddingStoreCreator.creerEmbeddingStore("/rag.pdf", embeddingModel);
+        EmbeddingStore<TextSegment> embeddingStore2 = EmbeddingStoreCreator.creerEmbeddingStore("/autre.pdf", embeddingModel);
 
-        ContentRetriever contentRetriever = EmbeddingStoreContentRetriever.builder()
-                .embeddingStore(embeddingStore)
+        ContentRetriever contentRetriever1 = EmbeddingStoreContentRetriever.builder()
+                .embeddingStore(embeddingStore1)
                 .embeddingModel(embeddingModel)
                 .maxResults(2)
                 .minScore(0.5)
                 .build();
 
-        QueryRouterPourEviterRag router = new QueryRouterPourEviterRag(model, contentRetriever);
-        
+        ContentRetriever contentRetriever2 = EmbeddingStoreContentRetriever.builder()
+                .embeddingStore(embeddingStore2)
+                .embeddingModel(embeddingModel)
+                .maxResults(2)
+                .minScore(0.5)
+                .build();
+
+        Map<ContentRetriever, String> retrieverDescriptions = new HashMap<>();
+        retrieverDescriptions.put(
+                contentRetriever1,
+                "Ce retriever contient des informations sur l'intelligence artificielle, le RAG (Retrieval Augmented Generation), les embeddings et les modèles de langage."
+        );
+        retrieverDescriptions.put(
+                contentRetriever2,
+                "Ce retriever contient des informations sur une certif oracle."
+        );
+
+        QueryRouter queryRouter = new LanguageModelQueryRouter(model, retrieverDescriptions);
+
         RetrievalAugmentor retrievalAugmentor = DefaultRetrievalAugmentor.builder()
-                .queryRouter(router)
+                .queryRouter(queryRouter)
                 .build();
 
         this.assistant = AiServices.builder(Assistant.class)
